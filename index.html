@@ -460,8 +460,13 @@ function buildGrid() {
     const btn = document.createElement('button');
     btn.className = `color-btn ${c.css}`;
     btn.textContent = c.name;
-    btn.addEventListener('click', () => handleTap(c.name));
-    btn.addEventListener('touchstart', (e) => { e.preventDefault(); handleTap(c.name); }, { passive: false });
+    // Use pointer events to avoid double-trigger (touchstart + click) on mobile.
+    btn.addEventListener('pointerdown', (e) => {
+      // Prevent the subsequent synthetic click on some browsers.
+      e.preventDefault();
+      handleTap(c.name);
+    });
+    btn.setAttribute('aria-label', 'Choose ' + c.name.toLowerCase());
     grid.appendChild(btn);
   });
 }
