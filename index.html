@@ -547,6 +547,7 @@ function handleTap(colorName) {
 
 // --- Timer ---
 function startTimer() {
+  if (timerInterval) clearInterval(timerInterval);
   timeLeft = GAME_TIME;
   document.getElementById('timer').textContent = timeLeft;
   document.getElementById('timer-bar').style.width = '100%';
@@ -576,6 +577,10 @@ function startGame() {
 
 // --- End game ---
 function endGame() {
+  if (timerInterval) {
+    clearInterval(timerInterval);
+    timerInterval = null;
+  }
   currentAnswer = null;
   let newBest = false;
   if (score > highScore) { highScore = score; saveHS(); newBest = true; }
