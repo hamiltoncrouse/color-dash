@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Color Dash!</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Lilita+One&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
+
+  :root {
+    --red: #FF4757;
+    --blue: #3742FA;
+    --green: #2ED573;
+    --yellow: #FFA502;
+    --purple: #A855F7;
+    --pink: #FF6B9D;
+    --bg: #0F0B1E;
+    --card: #1A1533;
+  }
+
+  body {
+    font-family: 'Fredoka', sans-serif;
+    background: var(--bg);
+    color: #fff;
+    min-height: 100dvh;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .game-container {
+    width: 100%;
+    max-width: 420px;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    position: relative;
+  }
+
+  /* === PARTICLES === */
+  .particles {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 0;
+  }
+  .particle {
+    position: absolute;
+    border-radius: 50%;
+    opacity: 0.15;
+    animation: float 6s infinite ease-in-out;
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(-30px) scale(1.1); }
+  }
+
+  /* === SCREENS === */
+  .screen { display: none; flex-direction: column; align-items: center; text-align: center; width: 100%; z-index: 1; }
+  .screen.active { display: flex; }
+
+  /* === START SCREEN === */
+  .title {
+    font-family: 'Lilita One', cursive;
+    font-size: 3.2rem;
+    background: linear-gradient(135deg, var(--red), var(--yellow), var(--green), var(--blue), var(--purple));
+    background-size: 300% 300%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: gradient-shift 3s ease infinite;
+    margin-bottom: 8px;
+    letter-spacing: 2px;
+  }
+  @keyframes gradient-shift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  .subtitle {
+    color: #8B7FA8;
+    font-size: 1rem;
+    margin-bottom: 40px;
+    font-weight: 400;
+  }
+
+  .start-btn {
+    background: linear-gradient(135deg, var(--purple), var(--pink));
+    border: none;
+    color: #fff;
+    font-family: 'Fredoka', sans-serif;
+    font-size: 1.4rem;
+    font-weight: 700;
+    padding: 18px 64px;
+    border-radius: 60px;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 8px 30px rgba(168, 85, 247, 0.4);
+    letter-spacing: 1px;
+  }
+  .start-btn:active { transform: scale(0.95); }
+
+  .high-score-display {
+    margin-top: 24px;
+    color: #6B5F8A;
+    font-size: 0.95rem;
+  }
+  .high-score-display span { color: var(--yellow); font-weight: 700; }
+
+  /* === GAME SCREEN === */
+  .game-hud {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    margin-bottom: 24px;
+  }
+  .hud-item {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 10px 20px;
+    min-width: 80px;
+    text-align: center;
+  }
+  .hud-label { font-size: 0.7rem; color: #6B5F8A; text-transform: uppercase; letter-spacing: 1px; }
+  .hud-value { font-size: 1.5rem; font-weight: 700; }
+  .hud-score .hud-value { color: var(--yellow); }
+  .hud-streak .hud-value { color: var(--green); }
+  .hud-timer .hud-value { color: var(--red); }
+
+  /* Timer bar */
+  .timer-bar-bg {
+    width: 100%;
+    height: 6px;
+    background: var(--card);
+    border-radius: 3px;
+    margin-bottom: 28px;
+    overflow: hidden;
+  }
+  .timer-bar {
+    height: 100%;
+    border-radius: 3px;
+    background: linear-gradient(90deg, var(--red), var(--yellow));
+    transition: width 0.1s linear;
+  }
+
+  /* Prompt */
+  .prompt-area {
+    margin-bottom: 32px;
+    min-height: 100px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .prompt-label {
+    font-size: 0.85rem;
+    color: #6B5F8A;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 12px;
+  }
+  .prompt-word {
+    font-family: 'Lilita One', cursive;
+    font-size: 2.8rem;
+    transition: transform 0.15s;
+    letter-spacing: 3px;
+  }
+  .prompt-word.pop { animation: pop 0.3s ease; }
+  @keyframes pop {
+    0% { transform: scale(0.6); opacity: 0; }
+    60% { transform: scale(1.15); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  /* Color buttons */
+  .color-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    width: 100%;
+    max-width: 320px;
+  }
+  .color-btn {
+    height: 80px;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    font-family: 'Fredoka', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #fff;
+    letter-spacing: 1px;
+    transition: transform 0.1s;
+    position: relative;
+    overflow: hidden;
+  }
+  .color-btn::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(255,255,255,0);
+    transition: background 0.15s;
+    border-radius: 20px;
+  }
+  .color-btn:active { transform: scale(0.93); }
+  .color-btn:active::after { background: rgba(255,255,255,0.2); }
+
+  .color-btn.red { background: var(--red); box-shadow: 0 6px 20px rgba(255,71,87,0.35); }
+  .color-btn.blue { background: var(--blue); box-shadow: 0 6px 20px rgba(55,66,250,0.35); }
+  .color-btn.green { background: var(--green); box-shadow: 0 6px 20px rgba(46,213,115,0.35); }
+  .color-btn.yellow { background: var(--yellow); box-shadow: 0 6px 20px rgba(255,165,2,0.35); }
+  .color-btn.purple { background: var(--purple); box-shadow: 0 6px 20px rgba(168,85,247,0.35); }
+  .color-btn.pink { background: var(--pink); box-shadow: 0 6px 20px rgba(255,107,157,0.35); }
+
+  /* Feedback flash */
+  .flash-overlay {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 10;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .flash-overlay.correct { background: rgba(46,213,115,0.2); opacity: 1; }
+  .flash-overlay.wrong { background: rgba(255,71,87,0.3); opacity: 1; }
+
+  .feedback-text {
+    position: fixed;
+    top: 40%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'Lilita One', cursive;
+    font-size: 2rem;
+    z-index: 11;
+    pointer-events: none;
+    opacity: 0;
+  }
+  .feedback-text.show {
+    animation: feedback-pop 0.6s ease forwards;
+  }
+  @keyframes feedback-pop {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+    30% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+    100% { opacity: 0; transform: translate(-50%, -70%) scale(1); }
+  }
+
+  /* === GAME OVER === */
+  .go-title {
+    font-family: 'Lilita One', cursive;
+    font-size: 2.4rem;
+    color: var(--red);
+    margin-bottom: 8px;
+  }
+  .go-subtitle { color: #6B5F8A; margin-bottom: 32px; }
+
+  .final-score-card {
+    background: var(--card);
+    border-radius: 24px;
+    padding: 28px 40px;
+    margin-bottom: 20px;
+    width: 100%;
+    max-width: 280px;
+  }
+  .final-score-label { font-size: 0.8rem; color: #6B5F8A; text-transform: uppercase; letter-spacing: 2px; }
+  .final-score-num {
+    font-family: 'Lilita One', cursive;
+    font-size: 3.5rem;
+    color: var(--yellow);
+  }
+  .final-best { color: var(--green); font-weight: 600; margin-top: 4px; font-size: 0.9rem; }
+  .new-best { color: var(--pink); }
+
+  .stats-row {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+  .stat-card {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 14px 20px;
+    flex: 1;
+    text-align: center;
+  }
+  .stat-label { font-size: 0.7rem; color: #6B5F8A; text-transform: uppercase; letter-spacing: 1px; }
+  .stat-val { font-size: 1.3rem; font-weight: 700; color: #fff; }
+
+  .play-again-btn {
+    background: linear-gradient(135deg, var(--green), #1DB954);
+    border: none;
+    color: #fff;
+    font-family: 'Fredoka', sans-serif;
+    font-size: 1.2rem;
+    font-weight: 700;
+    padding: 16px 56px;
+    border-radius: 60px;
+    cursor: pointer;
+    box-shadow: 0 8px 30px rgba(46,213,115,0.35);
+    letter-spacing: 1px;
+  }
+  .play-again-btn:active { transform: scale(0.95); }
+
+  /* Combo popup */
+  .combo {
+    position: fixed;
+    top: 15%;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Lilita One', cursive;
+    font-size: 1.4rem;
+    color: var(--yellow);
+    pointer-events: none;
+    opacity: 0;
+    z-index: 12;
+  }
+  .combo.show { animation: combo-in 0.8s ease forwards; }
+  @keyframes combo-in {
+    0% { opacity: 0; transform: translateX(-50%) scale(0.5); }
+    20% { opacity: 1; transform: translateX(-50%) scale(1.2); }
+    70% { opacity: 1; }
+    100% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+  }
+
+  /* Mode label */
+  .mode-label {
+    position: absolute;
+    top: 8px;
+    right: 16px;
+    font-size: 0.7rem;
+    color: #4A4162;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    z-index: 1;
+  }
+  .mode-tricky { color: var(--yellow); }
+</style>
+</head>
+<body>
+
+<div class="particles" id="particles"></div>
+<div class="flash-overlay" id="flash"></div>
+<div class="feedback-text" id="feedback"></div>
+<div class="combo" id="combo"></div>
+
+<div class="game-container">
+
+  <!-- START SCREEN -->
+  <div class="screen active" id="start-screen">
+    <div class="title">COLOR DASH</div>
+    <div class="subtitle">Tap the color, not the word!</div>
+    <button class="start-btn" id="start-btn">PLAY</button>
+    <div class="high-score-display" id="hs-display"></div>
+  </div>
+
+  <!-- GAME SCREEN -->
+  <div class="screen" id="game-screen">
+    <div class="mode-label" id="mode-label"></div>
+    <div class="game-hud">
+      <div class="hud-item hud-score"><div class="hud-label">Score</div><div class="hud-value" id="score">0</div></div>
+      <div class="hud-item hud-streak"><div class="hud-label">Streak</div><div class="hud-value" id="streak">0</div></div>
+      <div class="hud-item hud-timer"><div class="hud-label">Time</div><div class="hud-value" id="timer">30</div></div>
+    </div>
+    <div class="timer-bar-bg"><div class="timer-bar" id="timer-bar"></div></div>
+    <div class="prompt-area">
+      <div class="prompt-label" id="prompt-instruction">TAP THIS COLOR</div>
+      <div class="prompt-word" id="prompt-word">RED</div>
+    </div>
+    <div class="color-grid" id="color-grid"></div>
+  </div>
+
+  <!-- GAME OVER SCREEN -->
+  <div class="screen" id="gameover-screen">
+    <div class="go-title">GAME OVER</div>
+    <div class="go-subtitle" id="go-msg">Nice try!</div>
+    <div class="final-score-card">
+      <div class="final-score-label">Final Score</div>
+      <div class="final-score-num" id="final-score">0</div>
+      <div class="final-best" id="final-best"></div>
+    </div>
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-label">Best Streak</div><div class="stat-val" id="final-streak">0</div></div>
+      <div class="stat-card"><div class="stat-label">Correct</div><div class="stat-val" id="final-correct">0</div></div>
+    </div>
+    <button class="play-again-btn" id="replay-btn">PLAY AGAIN</button>
+  </div>
+
+</div>
+
+<script>
+const COLORS = [
+  { name: 'RED', css: 'red', hex: '#FF4757' },
+  { name: 'BLUE', css: 'blue', hex: '#3742FA' },
+  { name: 'GREEN', css: 'green', hex: '#2ED573' },
+  { name: 'YELLOW', css: 'yellow', hex: '#FFA502' },
+  { name: 'PURPLE', css: 'purple', hex: '#A855F7' },
+  { name: 'PINK', css: 'pink', hex: '#FF6B9D' },
+];
+
+const GAME_TIME = 30;
+const MESSAGES = [
+  { min: 0, msg: "Keep practicing!" },
+  { min: 10, msg: "Getting warmer!" },
+  { min: 25, msg: "Solid run!" },
+  { min: 40, msg: "On fire! \ud83d\udd25" },
+  { min: 60, msg: "Incredible! \ud83c\udf1f" },
+  { min: 80, msg: "LEGENDARY! \ud83d\udc51" },
+];
+
+let score = 0, streak = 0, bestStreak = 0, correct = 0, timeLeft = GAME_TIME;
+let highScore = 0;
+let currentAnswer = null;
+let timerInterval = null;
+let trickMode = false; // after score 15, text color \u2260 word
+
+// --- Particles ---
+(function createParticles() {
+  const cont = document.getElementById('particles');
+  for (let i = 0; i < 12; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const size = Math.random() * 60 + 20;
+    p.style.width = size + 'px';
+    p.style.height = size + 'px';
+    p.style.left = Math.random() * 100 + '%';
+    p.style.top = Math.random() * 100 + '%';
+    p.style.background = COLORS[Math.floor(Math.random() * COLORS.length)].hex;
+    p.style.animationDelay = (Math.random() * 6) + 's';
+    p.style.animationDuration = (4 + Math.random() * 4) + 's';
+    cont.appendChild(p);
+  }
+})();
+
+// --- Screens ---
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// --- High score ---
+function loadHS() { try { highScore = parseInt(localStorage.getItem('colordash_hs')) || 0; } catch(e) { highScore = 0; } }
+function saveHS() { try { localStorage.setItem('colordash_hs', highScore); } catch(e) {} }
+function showHS() {
+  const el = document.getElementById('hs-display');
+  el.innerHTML = highScore > 0 ? `Best: <span>${highScore}</span>` : '';
+}
+
+// --- Build color grid ---
+function buildGrid() {
+  const grid = document.getElementById('color-grid');
+  grid.innerHTML = '';
+  // Shuffle to randomize button positions
+  const shuffled = [...COLORS].sort(() => Math.random() - 0.5);
+  shuffled.forEach(c => {
+    const btn = document.createElement('button');
+    btn.className = `color-btn ${c.css}`;
+    btn.textContent = c.name;
+    btn.addEventListener('click', () => handleTap(c.name));
+    btn.addEventListener('touchstart', (e) => { e.preventDefault(); handleTap(c.name); }, { passive: false });
+    grid.appendChild(btn);
+  });
+}
+
+// --- Next round ---
+function nextRound() {
+  const answerColor = COLORS[Math.floor(Math.random() * COLORS.length)];
+  currentAnswer = answerColor.name;
+
+  const prompt = document.getElementById('prompt-word');
+
+  if (trickMode) {
+    // Show a DIFFERENT color name, but paint it in the answer color
+    let decoyOptions = COLORS.filter(c => c.name !== answerColor.name);
+    let decoy = decoyOptions[Math.floor(Math.random() * decoyOptions.length)];
+    prompt.textContent = decoy.name;
+    prompt.style.color = answerColor.hex;
+    document.getElementById('prompt-instruction').textContent = 'TAP THE INK COLOR';
+    document.getElementById('mode-label').textContent = '\u26a1 TRICKY';
+    document.getElementById('mode-label').className = 'mode-label mode-tricky';
+  } else {
+    prompt.textContent = answerColor.name;
+    prompt.style.color = answerColor.hex;
+    document.getElementById('prompt-instruction').textContent = 'TAP THIS COLOR';
+    document.getElementById('mode-label').textContent = '';
+  }
+
+  prompt.classList.remove('pop');
+  void prompt.offsetWidth;
+  prompt.classList.add('pop');
+}
+
+// --- Handle tap ---
+function handleTap(colorName) {
+  if (!currentAnswer) return;
+
+  const flash = document.getElementById('flash');
+  const fb = document.getElementById('feedback');
+
+  if (colorName === currentAnswer) {
+    streak++;
+    if (streak > bestStreak) bestStreak = streak;
+    correct++;
+
+    let points = 1 + Math.floor(streak / 3);
+    score += points;
+
+    // Combo notification
+    if (streak > 0 && streak % 5 === 0) {
+      const combo = document.getElementById('combo');
+      combo.textContent = `\ud83d\udd25 ${streak}x STREAK!`;
+      combo.classList.remove('show');
+      void combo.offsetWidth;
+      combo.classList.add('show');
+    }
+
+    flash.className = 'flash-overlay correct';
+    fb.textContent = points > 1 ? `+${points}` : '\u2713';
+    fb.style.color = '#2ED573';
+
+    // Enable trick mode after 15 points
+    if (score >= 15) trickMode = true;
+
+  } else {
+    streak = 0;
+    flash.className = 'flash-overlay wrong';
+    fb.textContent = '\u2717';
+    fb.style.color = '#FF4757';
+    trickMode = score >= 15; // stay in trick mode if already unlocked
+  }
+
+  fb.classList.remove('show');
+  void fb.offsetWidth;
+  fb.classList.add('show');
+
+  setTimeout(() => flash.className = 'flash-overlay', 150);
+
+  document.getElementById('score').textContent = score;
+  document.getElementById('streak').textContent = streak;
+
+  nextRound();
+}
+
+// --- Timer ---
+function startTimer() {
+  timeLeft = GAME_TIME;
+  document.getElementById('timer').textContent = timeLeft;
+  document.getElementById('timer-bar').style.width = '100%';
+
+  timerInterval = setInterval(() => {
+    timeLeft -= 0.1;
+    if (timeLeft <= 0) {
+      timeLeft = 0;
+      clearInterval(timerInterval);
+      endGame();
+    }
+    document.getElementById('timer').textContent = Math.ceil(timeLeft);
+    document.getElementById('timer-bar').style.width = (timeLeft / GAME_TIME * 100) + '%';
+  }, 100);
+}
+
+// --- Start game ---
+function startGame() {
+  score = 0; streak = 0; bestStreak = 0; correct = 0; trickMode = false;
+  document.getElementById('score').textContent = '0';
+  document.getElementById('streak').textContent = '0';
+  buildGrid();
+  showScreen('game-screen');
+  nextRound();
+  startTimer();
+}
+
+// --- End game ---
+function endGame() {
+  currentAnswer = null;
+  let newBest = false;
+  if (score > highScore) { highScore = score; saveHS(); newBest = true; }
+
+  const msg = [...MESSAGES].reverse().find(m => score >= m.min)?.msg || "Nice!";
+  document.getElementById('go-msg').textContent = msg;
+  document.getElementById('final-score').textContent = score;
+  document.getElementById('final-streak').textContent = bestStreak;
+  document.getElementById('final-correct').textContent = correct;
+
+  const bestEl = document.getElementById('final-best');
+  bestEl.textContent = newBest ? '\ud83c\udf89 NEW BEST!' : `Best: ${highScore}`;
+  bestEl.className = newBest ? 'final-best new-best' : 'final-best';
+
+  showScreen('gameover-screen');
+  showHS();
+}
+
+// --- Event listeners ---
+document.getElementById('start-btn').addEventListener('click', startGame);
+document.getElementById('replay-btn').addEventListener('click', startGame);
+
+// Init
+loadHS();
+showHS();
+</script>
+</body>
+</html>
